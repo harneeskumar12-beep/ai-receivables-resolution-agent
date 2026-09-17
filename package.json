@@ -1,0 +1,25 @@
+{
+  "name": "ai-receivables-resolution-agent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "V0 reasoning-engine foundation for an AI receivables resolution agent, with a Gemini provider for the first real-LLM experiment.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --no-warnings --test \"tests/*.test.ts\"",
+    "eval": "node --no-warnings src/run-evaluation.ts",
+    "start": "node --no-warnings src/server.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@google/genai": "^2.22.0",
+    "dotenv": "^17.4.2"
+  }
+}
