@@ -165,6 +165,49 @@ test("payment claim without evidence never resolves the invoice", () => {
   );
   assert.equal(r.decision.classification, "VERIFY_PAYMENT");
   assert.ok(r.violations.some((v) => v.code === "FALSE_PAYMENT_CONFIRMATION" && v.severity === "critical"));
+  // Regression: this existing VERIFY_PAYMENT-producing case (reached via
+  // Rule 5's RESOLVED reclassification, not a raw VERIFY_PAYMENT classification)
+  // now also requires human approval, per Rule 10 below.
+  assert.equal(r.decision.human_approval_required, true);
+  assert.ok(r.violations.some((v) => v.code === "VERIFY_PAYMENT_REQUIRES_APPROVAL"));
+});
+
+// --- VERIFY_PAYMENT is inherently uncertain: an unverified customer payment --
+// --- claim must always require human approval, regardless of source. --------
+
+test("an unverified payment claim ('I thought we already paid this') requires human approval", () => {
+  const c = baseCase({
+    invoice_facts: ["No payment has been received as of 2026-09-10."],
+    conversation_history: [
+      msg("I thought we already paid this. Can you check with your accounts team? I don't want to pay it twice."),
+    ],
+  });
+  const r = validateDecision(
+    c,
+    baseDecision({
+      classification: "VERIFY_PAYMENT",
+      evidence: ["we already paid"],
+      draft_response:
+        "Thank you for letting us know. We do not yet see this payment matched against the invoice on our side. Could you send the remittance details or payment reference so we can trace and confirm it? We will not treat the invoice as settled until it is matched.",
+      human_approval_required: false,
+    }),
+  );
+  assert.equal(r.decision.classification, "VERIFY_PAYMENT");
+  assert.equal(r.decision.human_approval_required, true);
+  assert.ok(r.violations.some((v) => v.code === "VERIFY_PAYMENT_REQUIRES_APPROVAL"));
+  assert.equal(r.overridden, true);
+});
+
+test("VERIFY_PAYMENT with human_approval_required already true is left unchanged, no duplicate violation", () => {
+  const c = baseCase({
+    conversation_history: [msg("We already paid this weeks ago, check your records.")],
+  });
+  const r = validateDecision(
+    c,
+    baseDecision({ classification: "VERIFY_PAYMENT", evidence: ["already paid"], human_approval_required: true }),
+  );
+  assert.equal(r.decision.human_approval_required, true);
+  assert.ok(!r.violations.some((v) => v.code === "VERIFY_PAYMENT_REQUIRES_APPROVAL"));
 });
 
 test("legal threats are stripped and escalated", () => {

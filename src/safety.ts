@@ -858,6 +858,29 @@ export function validateDecision(
     overridden = true;
   }
 
+  // Rule 10: VERIFY_PAYMENT is, by definition, an unresolved factual question -
+  // the customer's account of events conflicts with the case's own records,
+  // and nobody yet knows who is right. That is a form of uncertainty Rule 4
+  // does not otherwise cover (it only looks at the model's own confidence/
+  // evidence/vague-inquiry signals, not at what the classification itself
+  // means). Checked last, against the FINAL classification `d.classification`
+  // (not just the model's original one), so this also covers a decision that
+  // only became VERIFY_PAYMENT via Rule 5's RESOLVED reclassification above -
+  // not only a decision that started out as VERIFY_PAYMENT. Deliberately
+  // independent of HUMAN_OK (which also gates whether Rule 1/Rule 3 relabel
+  // the classification) - this only ever forces approval, never changes the
+  // classification label or any other field. Applies regardless of whether
+  // the decision came from the deterministic classifier or the LLM.
+  if (d.classification === "VERIFY_PAYMENT" && !d.human_approval_required) {
+    violations.push({
+      code: "VERIFY_PAYMENT_REQUIRES_APPROVAL",
+      severity: "high",
+      message: "An unverified customer payment claim requires human approval before further action.",
+    });
+    d.human_approval_required = true;
+    overridden = true;
+  }
+
   const safe = violations.length === 0 && !overridden;
   const override_reason = overridden
     ? violations.map((v) => `${v.code}: ${v.message}`).join("; ") || "Safety normalization applied."
