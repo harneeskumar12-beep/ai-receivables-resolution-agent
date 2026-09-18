@@ -168,6 +168,7 @@ const PROMISE_TO_PAY_PHRASES: readonly string[] = [
   "i'll pay",
   "we will make payment",
   "we will settle this",
+  "promise to pay",
 ];
 
 const PAYMENT_PENDING_PHRASES: readonly string[] = [

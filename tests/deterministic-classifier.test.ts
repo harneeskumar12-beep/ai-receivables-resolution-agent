@@ -324,6 +324,21 @@ test("Fix 3 guard: a case with an actual customer reply is never treated as sile
   assert.equal(r.matched, false);
 });
 
+// --- production incident: "promise to pay" phrasing was missing from PROMISE_TO_PAY_PHRASES ---
+
+test('real-world conversation ("We promise to pay the full invoice on 2026-09-20.") classifies as PROMISE_TO_PAY without calling the provider', () => {
+  const c = baseCase({
+    conversation_history: [
+      msg("Friendly reminder that invoice TEST-001 is past due.", "collections_agent"),
+      msg("We promise to pay the full invoice on 2026-09-20."),
+    ],
+  });
+  const r = classifyDeterministically(c);
+  assert.equal(r.matched, true);
+  assert.ok(r.matched && r.decision.classification === "PROMISE_TO_PAY");
+  assert.ok(r.matched && r.decision.human_approval_required === false);
+});
+
 test("existing deterministic rules still pass unaffected by the DISPUTE_PHRASES and evidence-format changes", () => {
   const paymentHelp = classifyDeterministically(baseCase({ conversation_history: [msg("How do I pay this?")] }));
   assert.ok(paymentHelp.matched && paymentHelp.decision.classification === "PAYMENT_HELP");
