@@ -110,6 +110,13 @@ const PAYMENT_PLAN_TERMS: readonly string[] = [
   "partial payments over",
   "extended payment terms",
   "extend the payment terms",
+  // Natural split-payment phrasing that names no specific plan keyword
+  // ("instalment", "split", "payment plan") but still proposes paying part
+  // now and the rest later - the connective is the actual signal, since the
+  // amount and timing vary too much to enumerate literally.
+  "and the remaining",
+  "and the rest",
+  "and the balance",
 ];
 
 const PAYMENT_CLAIM_TERMS: readonly string[] = [

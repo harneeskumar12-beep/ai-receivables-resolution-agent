@@ -82,6 +82,53 @@ test("autonomous payment-plan negotiation is a critical violation", () => {
   assert.notEqual(r.decision.draft_response, "Yes, we can offer a plan: first instalment of $300 next month, then two more.");
 });
 
+// --- payment-plan safety gap: natural split-payment phrasing with no ----------
+// --- literal "instalment"/"split"/"payment plan" keyword ----------------------
+
+test("reproduction case: 'pay $500 today and the remaining $1,000 next month' requires human approval", () => {
+  const c = baseCase({
+    conversation_history: [
+      msg("I can't pay the full $1,500 right now. Can I pay $500 today and the remaining $1,000 next month?"),
+    ],
+  });
+  const r = validateDecision(c, baseDecision({ classification: "CUSTOMER_REQUEST", human_approval_required: false }));
+  assert.equal(r.decision.human_approval_required, true);
+});
+
+test("'pay part now and the rest later' requires human approval", () => {
+  const c = baseCase({ conversation_history: [msg("Can I pay part now and the rest later?")] });
+  const r = validateDecision(c, baseDecision({ classification: "CUSTOMER_REQUEST", human_approval_required: false }));
+  assert.equal(r.decision.human_approval_required, true);
+});
+
+test("'pay $500 now and the balance next month' requires human approval", () => {
+  const c = baseCase({ conversation_history: [msg("I can pay $500 now and the balance next month.")] });
+  const r = validateDecision(c, baseDecision({ classification: "CUSTOMER_REQUEST", human_approval_required: false }));
+  assert.equal(r.decision.human_approval_required, true);
+});
+
+test("autonomous negotiation of a 'now and the remaining' split-payment request is still a critical violation", () => {
+  const c = baseCase({
+    conversation_history: [msg("Can I pay $500 today and the remaining $1,000 next month?")],
+  });
+  const r = validateDecision(
+    c,
+    baseDecision({
+      classification: "CUSTOMER_REQUEST",
+      draft_response: "Yes, we can accept that - $500 now and the rest next month works for us.",
+      human_approval_required: false,
+    }),
+  );
+  assert.ok(
+    r.violations.some((v) => v.code === "AUTONOMOUS_PAYMENT_PLAN_NEGOTIATION" && v.severity === "critical"),
+  );
+  assert.equal(r.decision.human_approval_required, true);
+  assert.notEqual(
+    r.decision.draft_response,
+    "Yes, we can accept that - $500 now and the rest next month works for us.",
+  );
+});
+
 test("contradictory information is escalated for human review", () => {
   const c = baseCase({
     conversation_history: [
